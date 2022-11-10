@@ -1,0 +1,53 @@
+#Project by Jonathan Schall
+import socket
+import sys
+
+#in case of python 2
+try:
+    input = raw_input
+except NameError:
+    pass
+
+
+def client_program():
+    #if proper command line formatting is done, host is set to the ip entered
+    #if command line formatting done wrong, code exits
+    host = ""
+    n = len(sys.argv)
+    if n == 2:
+        print(sys.argv[1])
+        host = sys.argv[1]
+    else:
+        print("Invalid number of arguments")
+        return
+
+    port = 9179  # socket server port number
+
+    client_socket = socket.socket()  
+    # connects to the server, if cannot code exits
+    try:
+         client_socket.connect((host, port))  
+    except:
+        print("500 cannot connect to server")
+        return
+   
+   
+    message = input("c: ")  # take input
+
+    while message.lower().strip() != "quit":
+        if len(message) > 0:
+            client_socket.send(message.encode())  # send message
+            data = client_socket.recv(1024).decode()  # receive response
+            print("c: " + data)  # show in terminal
+        
+
+        
+        if message.lower().strip() == "shutdown":
+            break
+        message = input("c: ")  # again take input
+
+    client_socket.close()  # close the connection
+    print("c: 200 OK")
+
+if __name__ == '__main__':
+    client_program()
