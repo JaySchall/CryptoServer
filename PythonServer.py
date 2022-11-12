@@ -230,7 +230,7 @@ def handle_client(conn, address):
                     conn.send("403 message format error".encode())
                     continue
                 if not (is_float(userStatement[1]) and float(userStatement[1]) > 0):
-                    conn.send("403 message format error".encode())
+                    conn.send("403 invalid input for $ amount".encode())
                     continue
 
                 result = cur.execute("SELECT usd_balance FROM USERS WHERE user_name = '" + username + "'")
@@ -245,6 +245,26 @@ def handle_client(conn, address):
                 userbal = float(userInfo[0])
                 confirm = accepted +"\nDeposit successful. New balance: $%.2f" % (userbal)
                 conn.send(confirm.encode())
+
+            elif command == "LOOKUP":
+                if len(userStatement) < 2: #checks for proper formatting and values for the LOOKUP command
+                    conn.send("403 message format error".encode())
+                    continue
+
+                cryptoName = userStatement[1]
+                matchedCryptos = 0
+
+                message = accepted + "\n"
+                result = cur.execute("SELECT crypto_name, crypto_balance FROM CRYPTOS WHERE user_id = '" + username + "'")
+                userCrypto = result.fetchone()
+                while userCrypto is not None:
+                    matchedCryptos += 1
+                    message += str(userCrypto[0]) + " " + str(userCrypto[1]) + "\n"
+                    cryptoVals = result.fetchone()
+                matchedMessage = "Found " + matchedCryptos + " matching records\n"
+                conn.send(matchedMessage.encode())
+                conn.send(message.encode())
+
 
             elif command == "LOGOUT":
                 loggedIn = False
