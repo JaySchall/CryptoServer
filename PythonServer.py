@@ -1,3 +1,4 @@
+# Jonathan Schall and Greg Kosakowski
 import socket
 import sqlite3
 import sys
