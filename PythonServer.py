@@ -255,15 +255,15 @@ def handle_client(conn, address):
                 matchedCryptos = 0
 
                 message = accepted + "\n"
-                result = cur.execute("SELECT crypto_name, crypto_balance FROM CRYPTOS WHERE user_id = '" + username + "'")
+                result = cur.execute("SELECT crypto_name, crypto_balance FROM CRYPTOS WHERE user_id = '" + username + "' AND crypto_name = '" + cryptoName + "'")
                 userCrypto = result.fetchone()
+                
                 while userCrypto is not None:
                     matchedCryptos += 1
                     message += str(userCrypto[0]) + " " + str(userCrypto[1]) + "\n"
-                    cryptoVals = result.fetchone()
-                matchedMessage = "Found " + matchedCryptos + " matching records\n"
-                conn.send(matchedMessage.encode())
-                conn.send(message.encode())
+                    userCrypto = result.fetchone()
+                matchedMessage = "Found " + str(matchedCryptos) + " matching records\n"
+                conn.send((matchedMessage + message).encode())
 
 
             elif command == "LOGOUT":
@@ -339,7 +339,7 @@ CREATE TABLE IF NOT EXISTS "cryptos" (
 	"crypto_balance"	DOUBLE,
 	"user_id"	TEXT,
 	PRIMARY KEY("ID" AUTOINCREMENT),
-	FOREIGN KEY("user_id") REFERENCES "users"("ID")
+	FOREIGN KEY("user_id") REFERENCES "users"("user_name")
 );
     """)
 
