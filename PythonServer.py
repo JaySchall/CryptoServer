@@ -224,6 +224,35 @@ def handle_client(conn, address):
                 else:
                     conn.send("Need root user permissions".encode())
 
+            elif command == "DEPOSIT":
+
+                if len(userStatement) < 2: #checks for proper formatting and values for the SELL command
+                    conn.send("403 message format error".encode())
+                    continue
+                if not (is_float(userStatement[1]) and float(userStatement[1]) > 0):
+                    conn.send("403 message format error".encode())
+                    continue
+
+                result = cur.execute("SELECT usd_balance FROM USERS WHERE user_name = '" + username + "'")
+                temp = result.fetchone()
+                currentBalance = float(temp[0])
+                newBalance = currentBalance + float(userStatement[1])
+                cur.execute("UPDATE USERS SET usd_balance = '" + str(newBalance) + "' WHERE user_name = '" + username + "'")
+                db.commit()
+
+                result = cur.execute("SELECT usd_balance FROM USERS WHERE user_name = '" + username + "'")
+                userInfo = result.fetchone()
+                userbal = float(userInfo[0])
+                confirm = accepted +"\nDeposit successful. New balance: $%.2f" % (userbal)
+                conn.send(confirm.encode())
+
+            elif command == "LOGOUT":
+                loggedIn = False
+                cur.execute("UPDATE USERS SET logged_in = '" + str(0) + "' WHERE user_name = '" + username + "'")
+                db.commit()
+                del username
+                conn.send(accepted.encode())
+
             #for shutdown, set condition for outer loop to false
             #this will stop the server from looping and closes the server
             elif command == "QUIT":
@@ -240,13 +269,6 @@ def handle_client(conn, address):
                 db.commit()
                 conn.send("Shutting down server...".encode())
                 break
-
-            elif command == "LOGOUT":
-                loggedIn = False
-                cur.execute("UPDATE USERS SET logged_in = '" + str(0) + "' WHERE user_name = '" + username + "'")
-                db.commit()
-                del username
-                conn.send(accepted.encode())
 
             else:
                 error = "400 invalid command"
