@@ -7,13 +7,13 @@ import sqlite3
 import sys
 import threading
 
-timeout = 1
-maxConnections = 10
+TIMEOUT = 1                                                     # initializing timeout for interrupts
+MAX_CONNECTIONS = 10                                             # initializing maximum connections
 running = True                                                  # SHUTDOWN command turns running to false
 accepted = "200 OK"                                             # string to send to client if command works
 db = sqlite3.connect("crypto.sqlite", check_same_thread=False)  # connection to database
 cur = db.cursor()                                               # used to do sql queries
-port = 9179                                                     # initiate port
+PORT = 9179                                                     # initiate port
 
 
 # used to check if variables can be turned to floats
@@ -24,7 +24,7 @@ def is_float(num):
     except:
         return False
 
-
+# function that nests all commands and transforms user input into useable data.
 def handle_client(conn, address):
     loggedIn = False
     hostname = socket.gethostname()
@@ -35,7 +35,7 @@ def handle_client(conn, address):
 
     # connect to client and receive commands
     while running:
-        conn.settimeout(timeout)
+        conn.settimeout(TIMEOUT)
         try:
             data = conn.recv(1024).decode()
         except:
@@ -75,17 +75,18 @@ def handle_client(conn, address):
                 cur.execute("UPDATE USERS SET last_ip = '" + str(ip_address) + "' WHERE user_name = '" + username + "'")
                 db.commit()
         
+        # QUIT command for any user not logged in
         elif command == "QUIT":
             conn.send("Quitting client...".encode())
 
         else:
             conn.send("400 invalid command".encode())
 
-        # MAIN COMMAND LOOP UNTIL USER LOGS OUT, QUITS, OR SHUTS DOWN THE SERVER
+        # main command loop for logged-in users
         while loggedIn:
             if running == False:
                 loggedIn = False
-            conn.settimeout(timeout)
+            conn.settimeout(TIMEOUT)
             try:
                 data = conn.recv(1024).decode()
             except:
@@ -108,7 +109,7 @@ def handle_client(conn, address):
                 if len(userStatement) < 4: #checks for proper formatting and values for the BUY command
                     conn.send("403 message format error".encode())
                     continue
-                if not (is_float(userStatement[2]) and is_float(userStatement[3])):
+                if not (is_float(userStatement[2]) and is_float(userStatement[3]) and (float(userStatement[2]) > 0) and (float(userStatement[3]) > 0)):       # checks if the values are floats and amount & price inputs > 0
                     conn.send("403 message format error".encode())
                     continue
                 cryptoName = userStatement[1]
@@ -139,7 +140,7 @@ def handle_client(conn, address):
                 db.commit()
                 result = cur.execute("SELECT crypto_balance FROM CRYPTOS WHERE crypto_name = '" + cryptoName + "' AND user_id = '" + username + "'")
                 cryptoBal = result.fetchone()[0]
-                confirm = accepted +"\nBOUGHT: New balance: %.2f %s USD Balance: $%.2f" % (amount,cryptoName, userbal)
+                confirm = accepted +"\nBOUGHT: New balance: %.2f %s USD Balance: $%.2f" % (cryptoBal, cryptoName, userbal)
                 conn.send(confirm.encode())
 
             # if command is formatted correctly, SELL selects the current balance of the crypto
@@ -152,7 +153,7 @@ def handle_client(conn, address):
                 if len(userStatement) < 4: #checks for proper formatting and values for the SELL command
                     conn.send("403 message format error".encode())
                     continue
-                if not (is_float(userStatement[2]) and is_float(userStatement[3])):
+                if not (is_float(userStatement[2]) and is_float(userStatement[3]) and (float(userStatement[2]) > 0) and (float(userStatement[3]) > 0)):         # checks if the values are floats and amount & price inputs > 0
                     conn.send("403 message format error".encode())
                     continue
                 cryptoName = userStatement[1]
@@ -183,7 +184,9 @@ def handle_client(conn, address):
                 db.commit()
                 cur.execute("UPDATE USERS SET usd_balance = '" + str(userbal) + "' WHERE user_name = '" + username + "'") #update balance in users account
                 db.commit()
-                confirm = accepted +"\nSOLD: New balance: %.2f %s USD Balance: $%.2f" % (amount,cryptoName, userbal)
+                result = cur.execute("SELECT crypto_balance FROM CRYPTOS WHERE crypto_name = '" + cryptoName + "' AND user_id = '" + username + "'")
+                cryptoBal = result.fetchone()[0]
+                confirm = accepted +"\nSOLD: New balance: %.2f %s USD Balance: $%.2f" % (cryptoBal,cryptoName, userbal)
                 conn.send(confirm.encode())
 
             # for LIST, all the cryptos in the crypto table are selected when logged in as the root user
@@ -231,7 +234,7 @@ def handle_client(conn, address):
                     activeUsers = result.fetchone()
 
                     while activeUsers is not None:
-                        message += "\n" + str(activeUsers[0]) + " " + activeUsers[1]
+                        message += "\n" + str(activeUsers[0]) + "\t" + activeUsers[1]
                         activeUsers = result.fetchone()
 
                     conn.send(message.encode())
@@ -274,16 +277,21 @@ def handle_client(conn, address):
                 matchedCryptos = 0
                 cryptoMessage = ""
 
-                message = accepted + "\n"
+                message = accepted
                 result = cur.execute("SELECT crypto_name, crypto_balance FROM CRYPTOS WHERE user_id = '" + username + "' AND crypto_name LIKE '%" + cryptoName + "%'")
                 userCrypto = result.fetchone()
 
                 while userCrypto is not None:
                     matchedCryptos += 1
-                    cryptoMessage += str(userCrypto[0]) + " " + str(userCrypto[1]) + "\n"
+                    cryptoMessage += "\n" + str(userCrypto[0]) + " " + str(userCrypto[1])
                     userCrypto = result.fetchone()
 
-                matchedMessage = "Found " + str(matchedCryptos) + " matching records\n"
+                matchedMessage = "\nFound " + str(matchedCryptos) + " matching records"
+
+                if (matchedCryptos <= 0):
+                    conn.send("404 Your search did not match any records".encode())
+                    continue
+
                 conn.send((message + matchedMessage + cryptoMessage).encode())
 
             # LOGIN command that notifies the user that they are already logged in
@@ -340,8 +348,8 @@ def server_program():
     
 
     server_socket = socket.socket()         # get instance
-    server_socket.bind((host, port))        # bind host address and port together
-    server_socket.listen(maxConnections)    # listening and only allowing maxConnections (10)
+    server_socket.bind((host, PORT))        # bind host address and port together
+    server_socket.listen(MAX_CONNECTIONS)    # listening and only allowing MAX_CONNECTIONS (10)
     
 #creates the users table
     cur.execute("""
@@ -384,7 +392,7 @@ CREATE TABLE IF NOT EXISTS "cryptos" (
     global running
     
     while running:
-        server_socket.settimeout(timeout)
+        server_socket.settimeout(TIMEOUT)
         try:
             conn, address = server_socket.accept()  # accept new connection, in loop incase client disconnects
             client_thread = threading.Thread(target=handle_client, args=(conn, address))
@@ -392,6 +400,7 @@ CREATE TABLE IF NOT EXISTS "cryptos" (
         except:
             pass
         
+    print("Server shutting down...")
     cur.execute("UPDATE USERS SET logged_in = 0")       # all clients will be logged out at this point
     db.commit()
     db.close() #close the database
