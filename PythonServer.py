@@ -284,6 +284,11 @@ def handle_client(conn, address):
                     userCrypto = result.fetchone()
 
                 matchedMessage = "Found " + str(matchedCryptos) + " matching records\n"
+
+                if (matchedCryptos <= 0):
+                    conn.send("404 Your search did not match any records".encode())
+                    continue
+
                 conn.send((message + matchedMessage + cryptoMessage).encode())
 
             # LOGIN command that notifies the user that they are already logged in
@@ -392,6 +397,7 @@ CREATE TABLE IF NOT EXISTS "cryptos" (
         except:
             pass
         
+    print("Server shutting down...")
     cur.execute("UPDATE USERS SET logged_in = 0")       # all clients will be logged out at this point
     db.commit()
     db.close() #close the database
