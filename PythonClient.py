@@ -46,9 +46,13 @@ def client_program():
             shutdownFlag = 1
 
         if len(message) > 0:
-            client_socket.send(message.encode())  # send message
-            data = client_socket.recv(1024).decode()  # receive response
-            print("s: " + data)  # show in terminal
+            try:
+                client_socket.send(message.encode())  # send message
+                data = client_socket.recv(1024).decode()  # receive response
+                print("s: " + data)  # show in terminal
+            except:
+                print("500 lost connect to server")
+                shutdownFlag = 1
 
     client_socket.close()  # close the connection
 

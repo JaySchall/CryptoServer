@@ -1,9 +1,9 @@
-# Jonathan Schall and Greg Kosakowski
 import socket
 import sqlite3
 import sys
 import threading
 
+timeout = 1
 running = True                                                  #SHUTDOWN command turns running to false
 accepted = "200 OK"                                             #string to send to client if command works
 db = sqlite3.connect("crypto.sqlite", check_same_thread=False)  #connection to database
@@ -21,7 +21,7 @@ def is_float(num):
 
 
 def handle_client(conn, address):
-    loggedIn = False;
+    loggedIn = False
     hostname = socket.gethostname()
     ip_address = socket.gethostbyname(hostname)
     print(f"Connection from: {ip_address}")
@@ -30,13 +30,14 @@ def handle_client(conn, address):
 
     #connect to client and receive commands
     while running:
+        conn.settimeout(timeout)
         try:
             data = conn.recv(1024).decode()
         except:
-            break           #breaks when data is not defined
+            continue           
             
         if not data:
-            break
+            break               #breaks when data is not defined
 
         print(f"Recieved from {ip_address}: {str(data)}")
 
@@ -77,10 +78,13 @@ def handle_client(conn, address):
 
         #MAIN COMMAND LOOP UNTIL USER LOGS OUT
         while loggedIn:
+            if running == False:
+                loggedIn = False
+            conn.settimeout(timeout)
             try:
                 data = conn.recv(1024).decode()
             except:
-                break
+                continue
             
             if not data:
                 break
@@ -256,9 +260,8 @@ def handle_client(conn, address):
                 matchedCryptos = 0
 
                 message = accepted + "\n"
-                result = cur.execute("SELECT crypto_name, crypto_balance FROM CRYPTOS WHERE user_id = '" + username + "' AND crypto_name = '" + cryptoName + "'")
+                result = cur.execute("SELECT crypto_name, crypto_balance FROM CRYPTOS WHERE user_id = '" + username + "' AND crypto_name LIKE '%" + cryptoName + "%'")
                 userCrypto = result.fetchone()
-                
                 while userCrypto is not None:
                     matchedCryptos += 1
                     message += str(userCrypto[0]) + " " + str(userCrypto[1]) + "\n"
@@ -357,13 +360,14 @@ CREATE TABLE IF NOT EXISTS "cryptos" (
     global running
     
     while running:
-        server_socket.settimeout(10)
+        server_socket.settimeout(timeout)
         try:
             conn, address = server_socket.accept()  # accept new connection, in loop incase client disconnects
             client_thread = threading.Thread(target=handle_client, args=(conn, address))
             client_thread.start()
         except:
-            print("10 Second timeout")
+            #print("10 Second timeout")
+            pass
         
     db.close() #close the database
     server_socket.close()
