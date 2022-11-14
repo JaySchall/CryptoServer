@@ -5,7 +5,7 @@
 import socket
 import sys
 
-port = 9179  # socket server port number
+PORT = 9179  # socket server port number
 
 # in case of python 2
 try:
@@ -30,7 +30,7 @@ def client_program():
 
     # connects to the server, if cannot code exits
     try:
-         client_socket.connect((host, port))  
+         client_socket.connect((host, PORT))  
     except:
         print("500 cannot connect to server")
         return

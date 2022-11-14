@@ -7,13 +7,13 @@ import sqlite3
 import sys
 import threading
 
-timeout = 1                                                     # initializing timeout for interrupts
+TIMEOUT = 1                                                     # initializing timeout for interrupts
 maxConnections = 10                                             # initializing maximum connections
 running = True                                                  # SHUTDOWN command turns running to false
 accepted = "200 OK"                                             # string to send to client if command works
 db = sqlite3.connect("crypto.sqlite", check_same_thread=False)  # connection to database
 cur = db.cursor()                                               # used to do sql queries
-port = 9179                                                     # initiate port
+PORT = 9179                                                     # initiate port
 
 
 # used to check if variables can be turned to floats
@@ -35,7 +35,7 @@ def handle_client(conn, address):
 
     # connect to client and receive commands
     while running:
-        conn.settimeout(timeout)
+        conn.settimeout(TIMEOUT)
         try:
             data = conn.recv(1024).decode()
         except:
@@ -85,7 +85,7 @@ def handle_client(conn, address):
         while loggedIn:
             if running == False:
                 loggedIn = False
-            conn.settimeout(timeout)
+            conn.settimeout(TIMEOUT)
             try:
                 data = conn.recv(1024).decode()
             except:
@@ -340,7 +340,7 @@ def server_program():
     
 
     server_socket = socket.socket()         # get instance
-    server_socket.bind((host, port))        # bind host address and port together
+    server_socket.bind((host, PORT))        # bind host address and port together
     server_socket.listen(maxConnections)    # listening and only allowing maxConnections (10)
     
 #creates the users table
@@ -384,7 +384,7 @@ CREATE TABLE IF NOT EXISTS "cryptos" (
     global running
     
     while running:
-        server_socket.settimeout(timeout)
+        server_socket.settimeout(TIMEOUT)
         try:
             conn, address = server_socket.accept()  # accept new connection, in loop incase client disconnects
             client_thread = threading.Thread(target=handle_client, args=(conn, address))
