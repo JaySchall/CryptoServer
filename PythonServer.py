@@ -1,17 +1,22 @@
+# Project 2 by Jonathan Schall and Greg Kosakowski
+# CIS 427
+# 11/13/2022
+
 import socket
 import sqlite3
 import sys
 import threading
 
 timeout = 1
-running = True                                                  #SHUTDOWN command turns running to false
-accepted = "200 OK"                                             #string to send to client if command works
-db = sqlite3.connect("crypto.sqlite", check_same_thread=False)  #connection to database
-cur = db.cursor()                                               #used to do sql queries
-port = 9179                                                     #initiate port
+maxConnections = 10
+running = True                                                  # SHUTDOWN command turns running to false
+accepted = "200 OK"                                             # string to send to client if command works
+db = sqlite3.connect("crypto.sqlite", check_same_thread=False)  # connection to database
+cur = db.cursor()                                               # used to do sql queries
+port = 9179                                                     # initiate port
 
 
-#used to check if variables can be turned to floats
+# used to check if variables can be turned to floats
 def is_float(num):
     try:
         float(num)
@@ -28,7 +33,7 @@ def handle_client(conn, address):
     global running
     global accepted
 
-    #connect to client and receive commands
+    # connect to client and receive commands
     while running:
         conn.settimeout(timeout)
         try:
@@ -37,16 +42,16 @@ def handle_client(conn, address):
             continue           
             
         if not data:
-            break               #breaks when data is not defined
+            break               # breaks when data is not defined
 
         print(f"Recieved from {ip_address}: {str(data)}")
 
-        #splits user string into workable data
+        # splits user string into workable data
         userStatement = data.split(" ")
         command = userStatement[0]
 
-        #LOGIN COMMAND
-        #takes the username and password from arguments and checks the db for an existing user, if so, admit them.
+        # LOGIN COMMAND
+        # takes the username and password from arguments and checks the db for an existing user, if so, admits them.
         if command == "LOGIN":
             if len(userStatement) < 3: #checks for proper formatting and values for the BUY command
                 conn.send("403 message format error".encode())
@@ -60,11 +65,11 @@ def handle_client(conn, address):
                 continue
             userID = temp[0]
             
-            #user is now logged in
+            # user is now logged in
             if userID != 0:
                 loggedIn = True
                 conn.send(accepted.encode())
-                #storing logged_in state and last connected ip within database
+                # storing logged_in state and last connected ip within database
                 cur.execute("UPDATE USERS SET logged_in = '" + str(1) + "' WHERE user_name = '" + username + "'")
                 db.commit()
                 cur.execute("UPDATE USERS SET last_ip = '" + str(ip_address) + "' WHERE user_name = '" + username + "'")
@@ -76,7 +81,7 @@ def handle_client(conn, address):
         else:
             conn.send("400 invalid command".encode())
 
-        #MAIN COMMAND LOOP UNTIL USER LOGS OUT
+        # MAIN COMMAND LOOP UNTIL USER LOGS OUT, QUITS, OR SHUTS DOWN THE SERVER
         while loggedIn:
             if running == False:
                 loggedIn = False
@@ -94,10 +99,10 @@ def handle_client(conn, address):
                 continue
             command = userStatement[0]
 
-            #if command is formatted correctly, BUY selects the current balance of the crypto
-            #if it exists and user has enough money, update the current crypto
-            #if it doesn't exist and user has enough money, insert a new crypto
-            #at the end, send a confirmation of new balances to user
+            # if command is formatted correctly, BUY selects the current balance of the crypto
+            # if it exists and user has enough money, update the current crypto
+            # if it doesn't exist and user has enough money, insert a new crypto
+            # at the end, send a confirmation of new balances to user
             if command == "BUY":
                 userbal = 0.0
                 if len(userStatement) < 4: #checks for proper formatting and values for the BUY command
@@ -137,10 +142,10 @@ def handle_client(conn, address):
                 confirm = accepted +"\nBOUGHT: New balance: %.2f %s USD Balance: $%.2f" % (amount,cryptoName, userbal)
                 conn.send(confirm.encode())
 
-            #if command is formatted correctly, SELL selects the current balance of the crypto
-            #if crypto is found and there is enough balance, sell the crypto
-            #update the balance of the crypto and the users balance
-            #at the end, send a confirmation of new balances to user
+            # if command is formatted correctly, SELL selects the current balance of the crypto
+            # if crypto is found and there is enough balance, sell the crypto
+            # update the balance of the crypto and the users balance
+            # at the end, send a confirmation of new balances to user
             elif command == "SELL":
                 userbal = 0.0
                 oldAmount = 0.0
@@ -181,32 +186,35 @@ def handle_client(conn, address):
                 confirm = accepted +"\nSOLD: New balance: %.2f %s USD Balance: $%.2f" % (amount,cryptoName, userbal)
                 conn.send(confirm.encode())
 
-            #for LIST, all the cryptos in the crypto table is selected
-            #for each crypto in the database, a new line is added to the string to be sent
-            #when there are no more cryptos to add to string, send the message to the user
+            # for LIST, all the cryptos in the crypto table are selected when logged in as the root user
+            # when logged in as a regular user, only their cryptos will be listed
+            # for each crypto in the database, a new line is added to the string to be sent
+            # when there are no more cryptos to add to string, send the message to the user
             elif command == "LIST":
                 if username == "root":
-                    message = accepted +"\nThe list of records in the Crypto database for ALL users:\n"
+                    message = accepted +"\nThe list of records in the Crypto database for ALL users:"
                     result = cur.execute("SELECT ID, crypto_name, crypto_balance, user_id FROM CRYPTOS")
                     cryptoVals = result.fetchone()
                     while cryptoVals is not None:
                         
-                        message += str(cryptoVals[0]) + " " + cryptoVals[1] + " " + str(cryptoVals[2]) + " " + cryptoVals[3] +"\n"
+                        message += "\n" + str(cryptoVals[0]) + " " + cryptoVals[1] + " " + str(cryptoVals[2]) + " " + cryptoVals[3]
                         cryptoVals = result.fetchone()
                     
                     conn.send(message.encode())
 
                 else:
-                    message = accepted + "\nThe list of records in the Crypto database for " + username + ":\n"
+                    message = accepted + "\nThe list of records in the Crypto database for " + username + ":"
                     result = cur.execute("SELECT ID, crypto_name, crypto_balance FROM CRYPTOS WHERE user_id = '" + username + "'")
                     cryptoVals = result.fetchone()
+
                     while cryptoVals is not None:
                         
-                        message += str(cryptoVals[0]) + " " + cryptoVals[1] + " " + str(cryptoVals[2]) + "\n"
+                        message += "\n" + str(cryptoVals[0]) + " " + cryptoVals[1] + " " + str(cryptoVals[2])
                         cryptoVals = result.fetchone()
                     
                     conn.send(message.encode())
 
+            # BALANCE outputs the balance of the current user that is logged in
             elif command == "BALANCE":
                 result = cur.execute("SELECT first_name, last_name, usd_balance FROM USERS WHERE user_name = '" + username + "'")
                 userInfo = result.fetchone()
@@ -214,6 +222,8 @@ def handle_client(conn, address):
                 confirm = accepted +"\nBalance for user " + userInfo[0] + " " + userInfo[1] + ": $" + str(userInfo[2])
                 conn.send(confirm.encode())
 
+            # WHO shows all clients currently connected to the server with their name and IP address.
+            # this command will only work if you are logged in as the root user
             elif command == "WHO":
                 if username == "root":
                     message = accepted +"\nThe list of the active users:"
@@ -228,7 +238,9 @@ def handle_client(conn, address):
                 
                 else:
                     conn.send("Need root user permissions".encode())
-
+            
+            # DEPOSIT command allows the logged in user to deposit a certain amount of money into their account
+            # it will add the specified amount of money into usd_balance
             elif command == "DEPOSIT":
 
                 if len(userStatement) < 2: #checks for proper formatting and values for the SELL command
@@ -251,6 +263,8 @@ def handle_client(conn, address):
                 confirm = accepted +"\nDeposit successful. New balance: $%.2f" % (userbal)
                 conn.send(confirm.encode())
 
+            # LOOKUP command searches the cryptos table for the crypto that the user specified
+            # it will return all the cryptos that match their input and user_name
             elif command == "LOOKUP":
                 if len(userStatement) < 2: #checks for proper formatting and values for the LOOKUP command
                     conn.send("403 message format error".encode())
@@ -258,18 +272,26 @@ def handle_client(conn, address):
 
                 cryptoName = userStatement[1]
                 matchedCryptos = 0
+                cryptoMessage = ""
 
                 message = accepted + "\n"
                 result = cur.execute("SELECT crypto_name, crypto_balance FROM CRYPTOS WHERE user_id = '" + username + "' AND crypto_name LIKE '%" + cryptoName + "%'")
                 userCrypto = result.fetchone()
+
                 while userCrypto is not None:
                     matchedCryptos += 1
-                    message += str(userCrypto[0]) + " " + str(userCrypto[1]) + "\n"
+                    cryptoMessage += str(userCrypto[0]) + " " + str(userCrypto[1]) + "\n"
                     userCrypto = result.fetchone()
+
                 matchedMessage = "Found " + str(matchedCryptos) + " matching records\n"
-                conn.send((matchedMessage + message).encode())
+                conn.send((message + matchedMessage + cryptoMessage).encode())
 
+            # LOGIN command that notifies the user that they are already logged in
+            elif command == "LOGIN":
+                message = "Already logged in as: " + username
+                conn.send(message.encode())
 
+            # LOGOUT command logs the current user out and breaks from this while loop
             elif command == "LOGOUT":
                 loggedIn = False
                 cur.execute("UPDATE USERS SET logged_in = '" + str(0) + "' WHERE user_name = '" + username + "'")
@@ -277,8 +299,8 @@ def handle_client(conn, address):
                 del username
                 conn.send(accepted.encode())
 
-            #for shutdown, set condition for outer loop to false
-            #this will stop the server from looping and closes the server
+            # QUIT COMMAND sets confition for outer loop to false
+            # this will break the loop and close the connection
             elif command == "QUIT":
                 loggedIn = False
                 cur.execute("UPDATE USERS SET logged_in = '" + str(0) + "' WHERE user_name = '" + username + "'")
@@ -286,6 +308,8 @@ def handle_client(conn, address):
                 conn.send("Closing client...".encode())
                 break
 
+            # SHUTDOWN sets condition for outer loop to false
+            # this will stop the server from looping and closes the server
             elif command == "SHUTDOWN":
                 loggedIn = False
                 running = False
@@ -315,9 +339,9 @@ def server_program():
         return 0
     
 
-    server_socket = socket.socket()  # get instance
-    server_socket.bind((host, port))  # bind host address and port together
-    server_socket.listen(3)
+    server_socket = socket.socket()         # get instance
+    server_socket.bind((host, port))        # bind host address and port together
+    server_socket.listen(maxConnections)    # listening and only allowing maxConnections (10)
     
 #creates the users table
     cur.execute("""
@@ -366,9 +390,10 @@ CREATE TABLE IF NOT EXISTS "cryptos" (
             client_thread = threading.Thread(target=handle_client, args=(conn, address))
             client_thread.start()
         except:
-            #print("10 Second timeout")
             pass
         
+    cur.execute("UPDATE USERS SET logged_in = 0")       # all clients will be logged out at this point
+    db.commit()
     db.close() #close the database
     server_socket.close()
 
