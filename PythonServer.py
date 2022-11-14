@@ -7,8 +7,8 @@ import sqlite3
 import sys
 import threading
 
-timeout = 1
-maxConnections = 10
+timeout = 1                                                     # initializing timeout for interrupts
+maxConnections = 10                                             # initializing maximum connections
 running = True                                                  # SHUTDOWN command turns running to false
 accepted = "200 OK"                                             # string to send to client if command works
 db = sqlite3.connect("crypto.sqlite", check_same_thread=False)  # connection to database
@@ -108,7 +108,7 @@ def handle_client(conn, address):
                 if len(userStatement) < 4: #checks for proper formatting and values for the BUY command
                     conn.send("403 message format error".encode())
                     continue
-                if not (is_float(userStatement[2]) and is_float(userStatement[3])):
+                if not (is_float(userStatement[2]) and is_float(userStatement[3]) and (float(userStatement[2]) > 0) and (float(userStatement[3]) > 0)):       # checks if the values are floats and amount & price inputs > 0
                     conn.send("403 message format error".encode())
                     continue
                 cryptoName = userStatement[1]
@@ -152,7 +152,7 @@ def handle_client(conn, address):
                 if len(userStatement) < 4: #checks for proper formatting and values for the SELL command
                     conn.send("403 message format error".encode())
                     continue
-                if not (is_float(userStatement[2]) and is_float(userStatement[3])):
+                if not (is_float(userStatement[2]) and is_float(userStatement[3]) and (float(userStatement[2]) > 0) and (float(userStatement[3]) > 0)):         # checks if the values are floats and amount & price inputs > 0
                     conn.send("403 message format error".encode())
                     continue
                 cryptoName = userStatement[1]
@@ -231,7 +231,7 @@ def handle_client(conn, address):
                     activeUsers = result.fetchone()
 
                     while activeUsers is not None:
-                        message += "\n" + str(activeUsers[0]) + " " + activeUsers[1]
+                        message += "\n" + str(activeUsers[0]) + "\t" + activeUsers[1]
                         activeUsers = result.fetchone()
 
                     conn.send(message.encode())
