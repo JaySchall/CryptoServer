@@ -1,4 +1,7 @@
-#Project by Jonathan Schall
+# Project 2 by Jonathan Schall and Greg Kosakowski
+# CIS 427
+# 11/13/2022
+
 import socket
 import sys
 
@@ -12,8 +15,8 @@ except NameError:
 
 
 def client_program():
-    #if proper command line formatting is done, host is set to the ip entered
-    #if command line formatting done wrong, code exits
+    # if proper command line formatting is done, host is set to the ip entered
+    # if command line formatting done wrong, code exits
     host = ""
     n = len(sys.argv)
     if n == 2:
@@ -32,9 +35,10 @@ def client_program():
         print("500 cannot connect to server")
         return
 
-    quitFlag = 0        #flag that breaks out of while loop when user command = quit
-    shutdownFlag = 0    #flag that breaks out of while loop when user command = shutdown
+    quitFlag = 0        # flag that breaks out of while loop when user command = quit
+    shutdownFlag = 0    # flag that breaks out of while loop when user command = shutdown
 
+    # main while loop to allow for user input until commands SHUTDOWN or QUIT are issued
     while quitFlag == 0 and shutdownFlag == 0:
 
         message = input("\nc: ")  # take input
@@ -46,13 +50,9 @@ def client_program():
             shutdownFlag = 1
 
         if len(message) > 0:
-            try:
-                client_socket.send(message.encode())  # send message
-                data = client_socket.recv(1024).decode()  # receive response
-                print("s: " + data)  # show in terminal
-            except:
-                print("500 lost connect to server")
-                shutdownFlag = 1
+            client_socket.send(message.encode())        # send message
+            data = client_socket.recv(1024).decode()    # receive response
+            print("s: " + data)                         # show in terminal
 
     client_socket.close()  # close the connection
 
