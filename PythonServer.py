@@ -8,7 +8,7 @@ import sys
 import threading
 
 TIMEOUT = 1                                                     # initializing timeout for interrupts
-maxConnections = 10                                             # initializing maximum connections
+MAX_CONNECTIONS = 10                                             # initializing maximum connections
 running = True                                                  # SHUTDOWN command turns running to false
 accepted = "200 OK"                                             # string to send to client if command works
 db = sqlite3.connect("crypto.sqlite", check_same_thread=False)  # connection to database
@@ -341,7 +341,7 @@ def server_program():
 
     server_socket = socket.socket()         # get instance
     server_socket.bind((host, PORT))        # bind host address and port together
-    server_socket.listen(maxConnections)    # listening and only allowing maxConnections (10)
+    server_socket.listen(MAX_CONNECTIONS)    # listening and only allowing MAX_CONNECTIONS (10)
     
 #creates the users table
     cur.execute("""
