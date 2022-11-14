@@ -24,7 +24,7 @@ def is_float(num):
     except:
         return False
 
-
+# function that nests all commands and transforms user input into useable data.
 def handle_client(conn, address):
     loggedIn = False
     hostname = socket.gethostname()
@@ -75,13 +75,14 @@ def handle_client(conn, address):
                 cur.execute("UPDATE USERS SET last_ip = '" + str(ip_address) + "' WHERE user_name = '" + username + "'")
                 db.commit()
         
+        # QUIT command for any user not logged in
         elif command == "QUIT":
             conn.send("Quitting client...".encode())
 
         else:
             conn.send("400 invalid command".encode())
 
-        # MAIN COMMAND LOOP UNTIL USER LOGS OUT, QUITS, OR SHUTS DOWN THE SERVER
+        # main command loop for logged-in users
         while loggedIn:
             if running == False:
                 loggedIn = False
@@ -139,7 +140,7 @@ def handle_client(conn, address):
                 db.commit()
                 result = cur.execute("SELECT crypto_balance FROM CRYPTOS WHERE crypto_name = '" + cryptoName + "' AND user_id = '" + username + "'")
                 cryptoBal = result.fetchone()[0]
-                confirm = accepted +"\nBOUGHT: New balance: %.2f %s USD Balance: $%.2f" % (amount,cryptoName, userbal)
+                confirm = accepted +"\nBOUGHT: New balance: %.2f %s USD Balance: $%.2f" % (cryptoBal, cryptoName, userbal)
                 conn.send(confirm.encode())
 
             # if command is formatted correctly, SELL selects the current balance of the crypto
@@ -183,7 +184,9 @@ def handle_client(conn, address):
                 db.commit()
                 cur.execute("UPDATE USERS SET usd_balance = '" + str(userbal) + "' WHERE user_name = '" + username + "'") #update balance in users account
                 db.commit()
-                confirm = accepted +"\nSOLD: New balance: %.2f %s USD Balance: $%.2f" % (amount,cryptoName, userbal)
+                result = cur.execute("SELECT crypto_balance FROM CRYPTOS WHERE crypto_name = '" + cryptoName + "' AND user_id = '" + username + "'")
+                cryptoBal = result.fetchone()[0]
+                confirm = accepted +"\nSOLD: New balance: %.2f %s USD Balance: $%.2f" % (cryptoBal,cryptoName, userbal)
                 conn.send(confirm.encode())
 
             # for LIST, all the cryptos in the crypto table are selected when logged in as the root user
@@ -274,16 +277,16 @@ def handle_client(conn, address):
                 matchedCryptos = 0
                 cryptoMessage = ""
 
-                message = accepted + "\n"
+                message = accepted
                 result = cur.execute("SELECT crypto_name, crypto_balance FROM CRYPTOS WHERE user_id = '" + username + "' AND crypto_name LIKE '%" + cryptoName + "%'")
                 userCrypto = result.fetchone()
 
                 while userCrypto is not None:
                     matchedCryptos += 1
-                    cryptoMessage += str(userCrypto[0]) + " " + str(userCrypto[1]) + "\n"
+                    cryptoMessage += "\n" + str(userCrypto[0]) + " " + str(userCrypto[1])
                     userCrypto = result.fetchone()
 
-                matchedMessage = "Found " + str(matchedCryptos) + " matching records\n"
+                matchedMessage = "\nFound " + str(matchedCryptos) + " matching records"
 
                 if (matchedCryptos <= 0):
                     conn.send("404 Your search did not match any records".encode())
