@@ -44,14 +44,13 @@ def client_program():
         
         if message.lower().strip() == "quit":
             quitFlag = 1
-
-        if message.lower().strip() == "shutdown":
-            shutdownFlag = 1
-
+            
         if len(message) > 0:
             try:
                 client_socket.send(message.encode())        # send message
                 data = client_socket.recv(1024).decode()    # receive response
+                if data == "Shutting down server...":
+                    shutdownFlag = 1
                 print("s: " + data)                         # show in terminal
             except:
                 print("500 lost connect to server")
