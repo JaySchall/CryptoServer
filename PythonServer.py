@@ -313,7 +313,7 @@ def handle_client(conn, address):
                 loggedIn = False
                 cur.execute("UPDATE USERS SET logged_in = '" + str(0) + "' WHERE user_name = '" + username + "'")
                 db.commit()
-                conn.send("Closing client...".encode())
+                conn.send("Quitting client...".encode())
                 break
 
             # SHUTDOWN sets condition for outer loop to false
