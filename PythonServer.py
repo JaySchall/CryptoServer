@@ -29,7 +29,7 @@ def handle_client(conn, address):
     loggedIn = False
     hostname = socket.gethostname()
     ip_address = socket.gethostbyname(hostname)
-    print(f"Connection from: {ip_address}")
+    print("Connection from: " + ip_address)
     global running
     global accepted
 
@@ -44,7 +44,7 @@ def handle_client(conn, address):
         if not data:
             break               # breaks when data is not defined
 
-        print(f"Recieved from {ip_address}: {str(data)}")
+        print("Recieved from " + ip_address + ": " + str(data))
 
         # splits user string into workable data
         userStatement = data.split(" ")
@@ -313,7 +313,7 @@ def handle_client(conn, address):
                 loggedIn = False
                 cur.execute("UPDATE USERS SET logged_in = '" + str(0) + "' WHERE user_name = '" + username + "'")
                 db.commit()
-                conn.send("Closing client...".encode())
+                conn.send("Quitting client...".encode())
                 break
 
             # SHUTDOWN sets condition for outer loop to false
