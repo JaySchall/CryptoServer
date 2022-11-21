@@ -5,7 +5,7 @@
 import socket
 import sys
 
-PORT = 9179  # socket server port number
+PORT = 5425  # socket server port number
 
 # in case of python 2
 try:

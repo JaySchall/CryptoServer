@@ -8,12 +8,12 @@ import sys
 import threading
 
 TIMEOUT = 1                                                     # initializing timeout for interrupts
-MAX_CONNECTIONS = 10                                             # initializing maximum connections
+MAX_CONNECTIONS = 10                                            # initializing maximum connections
 running = True                                                  # SHUTDOWN command turns running to false
 accepted = "200 OK"                                             # string to send to client if command works
 db = sqlite3.connect("crypto.sqlite", check_same_thread=False)  # connection to database
 cur = db.cursor()                                               # used to do sql queries
-PORT = 9179                                                     # initiate port
+PORT = 5425                                                     # initiate port
 
 
 # used to check if variables can be turned to floats
